@@ -338,7 +338,7 @@ class Robot {
   bool cartesian_pose_low_pass_filter_active_{false};
   bool cartesian_pose_command_rate_limit_active_{false};
 
-  bool joint_position_command_rate_limit_active_{false};
+  bool joint_position_command_rate_limit_active_{true};
   bool joint_position_command_low_pass_filter_active_{false};
 
   double low_pass_filter_cut_off_freq{100.0};

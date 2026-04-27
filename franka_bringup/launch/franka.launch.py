@@ -119,11 +119,15 @@ def generate_robot_nodes(context):
 
     controllers_yaml = LaunchConfiguration('controllers_yaml').perform(context)
 
-    joint_state_publisher_sources = [
-        'franka/joint_states',
-        'franka_gripper/joint_states',
-    ]
+    joint_state_publisher_sources = ['franka/joint_states']
+    if load_gripper:
+        joint_state_publisher_sources.append('franka_gripper/joint_states')
     joint_state_rate = int(LaunchConfiguration('joint_state_rate').perform(context))
+    robot_state_publisher_remappings = []
+    if not load_gripper:
+        robot_state_publisher_remappings = [
+            ('joint_states', joint_state_publisher_sources[0])
+        ]
 
     nodes = [
         Node(
@@ -131,6 +135,7 @@ def generate_robot_nodes(context):
             executable='robot_state_publisher',
             namespace=namespace,
             parameters=[{'robot_description': robot_description}],
+            remappings=robot_state_publisher_remappings,
             output='screen',
         ),
         Node(
@@ -147,20 +152,6 @@ def generate_robot_nodes(context):
             remappings=[('joint_states', joint_state_publisher_sources[0])],
             output='screen',
             on_exit=Shutdown(),
-        ),
-        Node(
-            package='joint_state_publisher',
-            executable='joint_state_publisher',
-            name='joint_state_publisher',
-            namespace=namespace,
-            parameters=[
-                {
-                    'source_list': joint_state_publisher_sources,
-                    'rate': joint_state_rate,
-                    'use_robot_description': False,
-                }
-            ],
-            output='screen',
         ),
         Node(
             package='controller_manager',
@@ -199,6 +190,25 @@ def generate_robot_nodes(context):
             condition=IfCondition(LaunchConfiguration('load_gripper')),
         ),
     ]
+
+    if load_gripper:
+        nodes.insert(
+            2,
+            Node(
+                package='joint_state_publisher',
+                executable='joint_state_publisher',
+                name='joint_state_publisher',
+                namespace=namespace,
+                parameters=[
+                    {
+                        'source_list': joint_state_publisher_sources,
+                        'rate': joint_state_rate,
+                        'use_robot_description': False,
+                    }
+                ],
+                output='screen',
+            ),
+        )
 
     return nodes
 
